@@ -1,0 +1,36 @@
+name: Update Game News
+on:
+  workflow_dispatch:      # Allows manual click to run
+  schedule:
+    - cron: '0 */6 * * *' # Runs automatically every 6 hours
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Libraries
+        run: pip install -r requirements.txt
+
+      - name: Generate Website
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python build_site.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name 'NewsBot'
+          git config --global user.email 'bot@noreply.github.com'
+          git add index.html
+          git commit -m "Updated news content" || exit 0
+          git push
