@@ -2,7 +2,7 @@ import os
 
 html_content = """
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -14,15 +14,10 @@ html_content = """
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #0b0b0b; --card-bg: #161616; --text: #ffffff; --accent: #facc15; --subtext: #a1a1aa; }
-        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; transition: 0.3s; }
-        
-        /* LANGUAGE SPECIFIC FONTS */
-        html[lang="en"] body { font-family: 'Inter', sans-serif; }
-        html[lang="ar"] body { font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         /* HEADER */
         header { 
@@ -30,21 +25,28 @@ html_content = """
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(255,255,255,0.1); 
             padding: 15px 20px; 
-            display: flex; justify-content: space-between; align-items: center;
+            text-align: center;
             position: sticky; top: 0; z-index: 100;
         }
         
-        h1 { font-family: 'Oswald', sans-serif; font-size: 1.5rem; margin: 0; letter-spacing: 1px; text-transform: uppercase; }
-        html[lang="ar"] h1 { font-family: 'Cairo', sans-serif; letter-spacing: 0; }
+        h1 { font-family: 'Oswald', sans-serif; font-size: 1.5rem; margin: 0 0 10px 0; letter-spacing: 1px; text-transform: uppercase; }
         h1 span { color: var(--accent); }
 
-        /* LANGUAGE TOGGLE BUTTON */
-        #lang-btn {
-            background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2);
-            padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: bold;
-            transition: 0.2s; display: flex; align-items: center; gap: 6px;
+        /* GOOGLE TRANSLATE WIDGET STYLING */
+        #google_translate_element {
+            display: inline-block;
+            margin-top: 5px;
         }
-        #lang-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+        /* Hide the annoying 'Powered by Google' bar */
+        .goog-te-gadget-simple {
+            background-color: #333 !important;
+            border: 1px solid #555 !important;
+            padding: 6px !important;
+            border-radius: 4px !important;
+            color: #fff !important;
+        }
+        .goog-te-gadget-simple span { color: #fff !important; }
+        .goog-te-gadget-icon { display: none !important; }
         
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
         
@@ -66,24 +68,17 @@ html_content = """
             position: absolute; bottom: 0; left: 0; width: 100%; padding: 25px; box-sizing: border-box; z-index: 2; 
             transition: transform 0.4s; transform: translateY(60px);
         }
-        /* RTL Adjustment for Content */
-        html[dir="rtl"] .content { left: auto; right: 0; text-align: right; }
-        
         .card:hover .content { transform: translateY(0); }
 
         .meta { font-size: 0.75rem; font-weight: bold; color: var(--accent); margin-bottom: 8px; font-family: 'Oswald', sans-serif; letter-spacing: 1px; }
-        html[dir="rtl"] .meta { direction: ltr; display: flex; justify-content: flex-end; gap: 5px; } /* Keep dates LTR */
         
         h2 { margin: 0 0 10px 0; font-size: 1.3rem; line-height: 1.3; font-weight: 700; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        /* Force English titles to be LTR even in Arabic mode for readability */
-        html[dir="rtl"] h2 { direction: ltr; text-align: right; font-family: 'Inter', sans-serif; }
 
         p { 
             font-size: 0.95rem; color: #ccc; margin: 0; line-height: 1.5; opacity: 0; transition: opacity 0.4s 0.1s;
             display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
         }
         .card:hover p { opacity: 1; }
-        html[dir="rtl"] p { direction: ltr; text-align: right; font-family: 'Inter', sans-serif; }
 
         /* MODAL */
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; backdrop-filter: blur(8px); }
@@ -93,17 +88,14 @@ html_content = """
             position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; 
             background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; cursor: pointer; z-index: 10; font-size: 20px; 
         }
-        html[dir="rtl"] #close-btn { right: auto; left: 20px; }
         
         #modal-img { width: 100%; height: 350px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px; }
         #modal-text-container { padding: 30px; }
         
         #modal-title { font-family: 'Oswald', sans-serif; font-size: 2rem; margin-top: 0; line-height: 1.2; }
-        html[dir="rtl"] #modal-title { font-family: 'Inter', sans-serif; direction: ltr; text-align: right; }
         
         #modal-body { font-size: 1.1rem; line-height: 1.8; color: #d4d4d8; margin-bottom: 30px; white-space: pre-wrap; }
         #modal-body img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; }
-        html[dir="rtl"] #modal-body { direction: ltr; text-align: right; font-family: 'Inter', sans-serif; }
 
         .reader-status { font-style: italic; color: var(--accent); font-size: 0.9rem; margin-top: 10px; display: block; animation: pulse 1.5s infinite; }
         
@@ -113,7 +105,6 @@ html_content = """
             text-transform: uppercase; font-family: 'Oswald', sans-serif; letter-spacing: 1px; transition: 0.2s;
         }
         #modal-link-btn:hover { background: #fff; transform: translateY(-2px); }
-        html[dir="rtl"] #modal-link-btn { font-family: 'Cairo', sans-serif; letter-spacing: 0; }
 
         #loading { text-align: center; color: var(--accent); margin-top: 50px; font-size: 1.2rem; letter-spacing: 1px; }
         
@@ -126,8 +117,8 @@ html_content = """
 </head>
 <body>
     <header>
-        <h1 id="app-title">GAME <span>NEWS</span></h1>
-        <button id="lang-btn" onclick="toggleLanguage()">🇦🇪 العربية</button>
+        <h1>GAME <span>NEWS</span></h1>
+        <div id="google_translate_element"></div>
     </header>
     
     <div class="container">
@@ -149,57 +140,18 @@ html_content = """
         </div>
     </div>
 
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en', 
+                includedLanguages: 'ar,en', 
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <script>
-        // --- LANGUAGE CONFIG ---
-        const translations = {
-            en: {
-                title: "GAME <span>NEWS</span>",
-                loading: "FETCHING LATEST NEWS...",
-                install: "📲 Install App",
-                readBtn: "Read Full Story",
-                langBtn: "🇦🇪 العربية",
-                readerLoading: "⚡ FETCHING FULL STORY..."
-            },
-            ar: {
-                title: "أخبار <span>الألعاب</span>",
-                loading: "جاري تحميل الأخبار...",
-                install: "📲 تثبيت التطبيق",
-                readBtn: "ترجمة وقراءة الخبر كاملاً 🌍",
-                langBtn: "🇺🇸 English",
-                readerLoading: "⚡ جاري جلب التفاصيل..."
-            }
-        };
-
-        let currentLang = localStorage.getItem('gameNewsLang') || 'en';
-
-        function toggleLanguage() {
-            currentLang = currentLang === 'en' ? 'ar' : 'en';
-            localStorage.setItem('gameNewsLang', currentLang);
-            applyLanguage();
-        }
-
-        function applyLanguage() {
-            const t = translations[currentLang];
-            const isAr = currentLang === 'ar';
-            
-            // 1. Set HTML Attributes
-            document.documentElement.lang = currentLang;
-            document.documentElement.dir = isAr ? 'rtl' : 'ltr';
-
-            // 2. Update UI Text
-            document.getElementById('app-title').innerHTML = t.title;
-            document.getElementById('loading').innerText = t.loading;
-            document.getElementById('install-btn').innerText = t.install;
-            document.getElementById('lang-btn').innerText = t.langBtn;
-            
-            // 3. Update Modal Button if open
-            const modalBtn = document.getElementById('modal-link-btn');
-            if (modalBtn) modalBtn.innerText = t.readBtn;
-        }
-
-        // Apply on load
-        applyLanguage();
-
         // --- PWA & APP LOGIC ---
         let deferredPrompt;
         const installBtn = document.getElementById('install-btn');
@@ -252,7 +204,7 @@ html_content = """
                         const pubDate = new Date(item.pubDate);
                         const now = new Date();
                         const hoursOld = (now - pubDate) / (1000 * 60 * 60);
-                        if (hoursOld > 48) return; // Strict 48h filter
+                        if (hoursOld > 48) return; 
 
                         let desc = item.description || "";
                         let cont = item.content || "";
@@ -309,23 +261,13 @@ html_content = """
 
         window.openModal = function(index) {
             const article = allArticles[index];
-            const isAr = currentLang === 'ar';
-            const t = translations[currentLang];
-
             modalTitle.innerText = article.title;
             modalImg.src = article.image;
             modalBody.innerHTML = article.fullText; 
-            modalBtn.innerText = t.readBtn;
-            
-            // LINK LOGIC: English = Direct Link; Arabic = Google Translate
-            if (isAr) {
-                modalBtn.href = "https://translate.google.com/translate?sl=en&tl=ar&u=" + encodeURIComponent(article.link);
-            } else {
-                modalBtn.href = article.link;
-            }
+            modalBtn.href = article.link;
 
             // WORDPRESS READER
-            modalBody.innerHTML += `<br><span class="reader-status">${t.readerLoading}</span>`;
+            modalBody.innerHTML += '<br><span class="reader-status">⚡ FETCHING FULL STORY...</span>';
             const wpUrl = 'https://public-api.wordpress.com/rest/v1.1/readability?url=' + encodeURIComponent(article.link);
             fetch(wpUrl).then(r => r.json()).then(data => {
                 if(data.content) modalBody.innerHTML = data.content; 
@@ -393,4 +335,4 @@ with open("manifest.json", "w", encoding="utf-8") as f:
 with open("sw.js", "w", encoding="utf-8") as f:
     f.write(sw_content)
 
-print("✅ Bilingual Version Installed: English + Arabic Toggle")
+print("✅ Auto-Translate Widget Installed")
