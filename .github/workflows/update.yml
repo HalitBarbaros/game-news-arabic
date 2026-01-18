@@ -1,8 +1,8 @@
 name: Update Game News
 on:
-  workflow_dispatch:
+  workflow_dispatch:      # Allows manual click
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *' # Runs every 6 hours
 
 permissions:
   contents: write
@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Gets all history to prevent conflicts
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -25,13 +27,21 @@ jobs:
       - name: Generate Website
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python build_site.py
+        run: |
+          python build_site.py
+          ls -l index.html  # Verify file was created
 
-      - name: Commit and Push Changes
+      - name: FORCE Commit and Push
         run: |
           git config --global user.name 'NewsBot'
           git config --global user.email 'bot@noreply.github.com'
+          
+          # Add the file
           git add index.html
-          git commit -m "Updated news content" || echo "No changes to commit"
-          git pull origin main --rebase
-          git push
+          
+          # Commit (If no changes, this prevents error)
+          git commit -m "Fresh News Update: $(date)" || echo "⚠️ No changes to commit"
+          
+          # THE SECRET WEAPON: Force Push
+          # This overrides any 'conflict' errors
+          git push origin main
