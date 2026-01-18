@@ -1,135 +1,254 @@
-# THIS SCRIPT NOW JUST INSTALLS THE LIVE DASHBOARD
-# The actual news fetching happens in your browser (JavaScript)
 import os
 
+# CONFIG: The "Premium Editorial" Design
 html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Game News</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>This Week in Video Games</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --date: #94a3b8; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        /* 1. COLOR PALETTE (Skill Up / Cyberpunk Vibe) */
+        :root {
+            --bg: #0b0b0b;          /* Deep Black */
+            --card-bg: #161616;     /* Dark Grey */
+            --text: #ffffff;
+            --accent: #facc15;      /* The "Skill Up" Yellow */
+            --accent-hover: #eab308;
+            --subtext: #a1a1aa;
+        }
+
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 0;
+        }
+
+        /* 2. HEADER (Bold & Condensed) */
+        header { 
+            background: #000; 
+            border-bottom: 2px solid var(--accent); 
+            padding: 40px 20px; 
+            text-align: center; 
+        }
         
-        header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #334155; padding-bottom: 20px; }
-        h1 { margin: 0; font-size: 2rem; color: #38bdf8; }
-        .subtitle { color: var(--date); font-size: 0.9rem; margin-top: 5px; }
+        h1 { 
+            font-family: 'Oswald', sans-serif; 
+            font-size: 3.5rem; 
+            text-transform: uppercase; 
+            margin: 0; 
+            letter-spacing: 1px;
+        }
         
-        #loading { text-align: center; font-size: 1.2rem; color: #fbbf24; margin-top: 50px; }
+        h1 span { color: var(--accent); } /* Yellow highlight */
         
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; opacity: 0; transition: opacity 0.5s; }
+        .subtitle { 
+            color: var(--subtext); 
+            margin-top: 10px; 
+            font-size: 0.9rem; 
+            letter-spacing: 0.5px;
+        }
+
+        /* 3. GRID LAYOUT */
+        .container { 
+            max-width: 1100px; 
+            margin: 40px auto; 
+            padding: 0 20px; 
+        }
+        
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+            gap: 25px; 
+            opacity: 0; 
+            transition: opacity 0.5s ease-in;
+        }
         .grid.loaded { opacity: 1; }
+
+        /* 4. PREMIUM CARDS */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 0px; /* Sharp edges look more 'editorial' */
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #222;
+        }
         
-        .card { background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; }
-        .card:hover { border-color: var(--accent); transform: translateY(-3px); transition: 0.2s; }
+        .card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+            border-color: var(--accent);
+        }
         
-        .card img { width: 100%; height: 160px; object-fit: cover; background: #000; }
-        .content { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .source { color: var(--accent); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-        h2 { font-size: 1.1rem; margin: 0 0 10px 0; line-height: 1.4; }
-        p { font-size: 0.85rem; color: #cbd5e1; flex-grow: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+        .card img { 
+            width: 100%; 
+            height: 180px; 
+            object-fit: cover; 
+            filter: grayscale(20%); /* Artistic touch */
+            transition: 0.3s;
+        }
         
-        .date-tag { font-size: 0.7rem; color: #64748b; margin-top: 10px; text-align: right; }
-        a { text-decoration: none; color: inherit; display: block; height: 100%; }
+        .card:hover img { filter: grayscale(0%); } /* Color returns on hover */
+
+        .content { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
+        
+        .meta { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        h2 { 
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.4rem; 
+            margin: 0 0 15px 0; 
+            line-height: 1.3; 
+            color: #fff;
+        }
+        
+        p { 
+            font-size: 0.9rem; 
+            color: var(--subtext); 
+            line-height: 1.6; 
+            margin-bottom: 20px; 
+            flex-grow: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        a.card-link { text-decoration: none; color: inherit; height: 100%; display: flex; flex-direction: column; }
+        
+        #loading { 
+            text-align: center; 
+            color: var(--accent); 
+            font-family: 'Oswald', sans-serif; 
+            font-size: 1.5rem; 
+            margin-top: 50px; 
+        }
+
+        /* 5. FOOTER */
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 40px;
+            border-top: 1px solid #222;
+            color: #444;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
     <header>
-        <h1>⚡ Live Game News</h1>
-        <div class="subtitle">Updates automatically every time you refresh</div>
+        <h1>THIS WEEK IN <span>VIDEO GAMES</span></h1>
+        <div class="subtitle">LIVE FEED • INDEPENDENT COVERAGE • NO ADS</div>
     </header>
 
-    <div id="loading">Connecting to News Feeds...</div>
-    <div id="news-grid" class="grid"></div>
-</div>
+    <div class="container">
+        <div id="loading">FETCHING LIVE NEWS...</div>
+        <div id="news-grid" class="grid"></div>
+    </div>
 
-<script>
-    // 1. LIST OF FEEDS (Gematsu & VG247 are fastest for 'Twitter-like' news)
-    const feeds = [
-        { name: "Gematsu", url: "https://gematsu.com/feed" },
-        { name: "VG247", url: "https://www.vg247.com/feed" },
-        { name: "Eurogamer", url: "https://www.eurogamer.net/feed" },
-        { name: "IGN", url: "https://feeds.ign.com/ign/news" },
-        { name: "GameSpot", url: "https://www.gamespot.com/feeds/news/" }
-    ];
+    <footer>
+        DESIGN INSPIRED BY SKILL UP • AUTO-UPDATES ON REFRESH
+    </footer>
 
-    const grid = document.getElementById('news-grid');
-    const loading = document.getElementById('loading');
-    let allArticles = [];
-    let completedFeeds = 0;
+    <script>
+        // SOURCES (Gematsu/VG247 are closest to 'Twitter' speed)
+        const feeds = [
+            { name: "Gematsu", url: "https://gematsu.com/feed" },
+            { name: "VG247", url: "https://www.vg247.com/feed" },
+            { name: "Eurogamer", url: "https://www.eurogamer.net/feed" },
+            { name: "Kotaku", url: "https://kotaku.com/rss" },
+            { name: "IGN", url: "https://feeds.ign.com/ign/news" }
+        ];
 
-    // 2. FETCH FUNCTION (Runs in Browser)
-    feeds.forEach(source => {
-        // We use rss2json to bypass CORS blocks
-        const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(source.url);
+        const grid = document.getElementById('news-grid');
+        const loading = document.getElementById('loading');
+        let allArticles = [];
+        let completedFeeds = 0;
 
-        fetch(proxyUrl)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    data.items.slice(0, 4).forEach(item => { // Get top 4 from each
-                        allArticles.push({
-                            title: item.title,
-                            link: item.link,
-                            image: item.enclosure?.link || item.thumbnail || "https://placehold.co/600x400/1e293b/FFF?text=" + source.name,
-                            summary: item.description.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...",
-                            source: source.name,
-                            date: new Date(item.pubDate)
+        feeds.forEach(source => {
+            const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(source.url);
+
+            fetch(proxyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        data.items.slice(0, 5).forEach(item => {
+                            // Clean up descriptions
+                            let cleanDesc = item.description.replace(/<[^>]*>?/gm, '');
+                            if (cleanDesc.length > 150) cleanDesc = cleanDesc.substring(0, 150) + "...";
+
+                            allArticles.push({
+                                title: item.title,
+                                link: item.link,
+                                image: item.enclosure?.link || item.thumbnail || "https://placehold.co/600x400/161616/333?text=NEWS",
+                                summary: cleanDesc,
+                                source: source.name,
+                                date: new Date(item.pubDate)
+                            });
                         });
-                    });
-                }
-            })
-            .catch(err => console.log('Error fetching ' + source.name, err))
-            .finally(() => {
-                completedFeeds++;
-                if (completedFeeds === feeds.length) {
-                    renderNews();
-                }
-            });
-    });
-
-    function renderNews() {
-        // Sort by Newest First
-        allArticles.sort((a, b) => b.date - a.date);
-
-        loading.style.display = 'none';
-        grid.innerHTML = '';
-        
-        allArticles.forEach(article => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <a href="${article.link}" target="_blank">
-                    <img src="${article.image}" onerror="this.src='https://placehold.co/600x400/1e293b/FFF?text=News'">
-                    <div class="content">
-                        <div class="source">${article.source}</div>
-                        <h2>${article.title}</h2>
-                        <p>${article.summary}</p>
-                        <div class="date-tag">${timeAgo(article.date)}</div>
-                    </div>
-                </a>
-            `;
-            grid.appendChild(card);
+                    }
+                })
+                .catch(err => console.log('Error:', err))
+                .finally(() => {
+                    completedFeeds++;
+                    if (completedFeeds === feeds.length) renderNews();
+                });
         });
-        
-        grid.classList.add('loaded');
-    }
 
-    function timeAgo(date) {
-        const seconds = Math.floor((new Date() - date) / 1000);
-        let interval = seconds / 3600;
-        if (interval > 1) return Math.floor(interval) + " hours ago";
-        interval = seconds / 60;
-        if (interval > 1) return Math.floor(interval) + " minutes ago";
-        return "Just now";
-    }
-</script>
+        function renderNews() {
+            // Sort: Newest First
+            allArticles.sort((a, b) => b.date - a.date);
+
+            loading.style.display = 'none';
+            grid.innerHTML = '';
+            
+            allArticles.forEach(article => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <a href="${article.link}" class="card-link" target="_blank">
+                        <img src="${article.image}" onerror="this.src='https://placehold.co/600x400/161616/333?text=IMG'">
+                        <div class="content">
+                            <div class="meta">
+                                <span>${article.source}</span>
+                                <span>${timeAgo(article.date)}</span>
+                            </div>
+                            <h2>${article.title}</h2>
+                            <p>${article.summary}</p>
+                        </div>
+                    </a>
+                `;
+                grid.appendChild(card);
+            });
+            
+            grid.classList.add('loaded');
+        }
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + "h ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + "m ago";
+            return "Just now";
+        }
+    </script>
 
 </body>
 </html>
@@ -138,4 +257,4 @@ html_content = """
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("✅ Live Dashboard Installed.")
+print("✅ Skill-Up Style Theme Installed!")
