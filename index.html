@@ -4,25 +4,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أخبار الألعاب - Game News</title>
+    <title>Steam News - LIVE</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #121212; color: #ffffff; font-family: 'Tajawal', sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
-        h1 { text-align: center; color: #bb86fc; }
+        
+        /* Green Title = New Script is Active */
+        h1 { text-align: center; color: #00ff00; border-bottom: 2px solid #00ff00; padding-bottom: 10px; }
+        
         .card { background: #1e1e1e; border-radius: 12px; margin-bottom: 25px; border: 1px solid #333; overflow: hidden; }
         .card img { width: 100%; height: 200px; object-fit: cover; }
         .card-content { padding: 20px; }
-        h2 { margin-top: 0; }
+        h2 { margin-top: 0; color: #fff; }
         ul { padding-right: 20px; color: #ccc; }
-        a { display: block; text-align: center; background: #3700b3; color: white; text-decoration: none; padding: 10px; margin-top: 15px; border-radius: 6px; }
+        .timestamp { text-align: center; color: #888; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 أخبار الألعاب - Game News</h1>
-        <div style="text-align: center; color: #888; margin-bottom: 20px;">Updated: 2026-01-18 18:20 UTC</div>
-        <h3 style='text-align:center;'>❌ No news found. The sites might be blocking access.</h3>
+        <h1>✅ SYSTEM ONLINE (Steam)</h1>
+        <div class="timestamp">Updated: 2026-01-18 18:30 UTC</div>
+        
+        <div class="card">
+            <div class="card-content">
+                <h2>⚠️ Test Article (System Check)</h2>
+                <ul>
+                    <li>If you see this, the code updated successfully!</li>
+                    <li>Steam feed was empty, so this is a placeholder.</li>
+                </ul>
+            </div>
+        </div>
+        
     </div>
 </body>
 </html>
