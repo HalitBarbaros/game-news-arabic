@@ -3,141 +3,93 @@ from google import genai
 from google.genai import types
 import os
 import datetime
+import traceback
 
 # 1. SETUP
 API_KEY = os.environ.get("GEMINI_API_KEY")
-if not API_KEY:
-    raise ValueError("❌ Error: GEMINI_API_KEY is missing from Secrets!")
-
 client = genai.Client(api_key=API_KEY)
 
 rss_feeds = [
     "https://feeds.ign.com/ign/news",
     "https://www.gamespot.com/feeds/news/",
-    "https://kotaku.com/rss",
 ]
 
-# 2. HTML TEMPLATE
+# 2. HTML TEMPLATE WITH ERROR BOX SUPPORT
 html_template = """
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أخبار الألعاب - Game News</title>
+    <title>Game News - Diagnostics</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {{ background-color: #121212; color: #ffffff; font-family: 'Tajawal', sans-serif; margin: 0; padding: 20px; }}
         .container {{ max-width: 800px; margin: 0 auto; }}
+        .error-box {{ background: #cf6679; color: #000; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: left; direction: ltr; font-family: monospace; }}
+        .card {{ background: #1e1e1e; border-radius: 12px; margin-bottom: 20px; padding: 20px; border: 1px solid #333; }}
         h1 {{ text-align: center; color: #bb86fc; }}
-        .timestamp {{ text-align: center; color: #888; font-size: 0.8rem; margin-bottom: 30px; }}
-        .card {{ background: #1e1e1e; border-radius: 12px; overflow: hidden; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #333; }}
-        .card img {{ width: 100%; height: 200px; object-fit: cover; }}
-        .card-content {{ padding: 20px; }}
-        .source-tag {{ background: #03dac6; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }}
-        h2 {{ margin-top: 10px; font-size: 1.5rem; }}
-        ul {{ padding-right: 20px; color: #ccc; line-height: 1.6; }}
-        a {{ display: block; text-align: center; background: #3700b3; color: white; text-decoration: none; padding: 10px; margin-top: 15px; border-radius: 6px; }}
-        a:hover {{ background: #6200ea; }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 أخبار الألعاب - Game News</h1>
-        <div class="timestamp">آخر تحديث: {date}</div>
+        <h1>🔍 Game News Diagnostics</h1>
+        <div style="text-align: center; color: #888;">Updated: {date}</div>
+        
+        {error_section}
+
         {articles}
     </div>
 </body>
 </html>
 """
 
-card_template = """
-<div class="card">
-    <img src="{image}" alt="News Image" onerror="this.src='https://placehold.co/600x400/1e1e1e/FFF?text=No+Image'">
-    <div class="card-content">
-        <span class="source-tag">{source}</span>
-        <h2>{headline}</h2>
-        <ul>{summary_points}</ul>
-        <a href="{link}" target="_blank">قراءة المقال الأصلي</a>
-    </div>
-</div>
-"""
-
-def get_translation(title, summary):
-    prompt = f"""
-    Task: Translate video game news to Arabic.
-    1. Translate headline to Arabic.
-    2. Summarize content into 3 short Arabic bullet points (<li>Point</li>).
-    English Title: {title}
-    English Content: {summary}
-    Output JSON: {{ "headline": "...", "bullets": "<li>...</li><li>...</li>" }}
-    """
+def main():
+    error_html = ""
+    articles_html = ""
+    
+    # TEST 1: Check API Key
+    if not API_KEY:
+        error_html += "<div class='error-box'>❌ FATAL: GEMINI_API_KEY is missing from GitHub Secrets.</div>"
+    
+    # TEST 2: Check AI Connection (The likely failure point)
     try:
-        # CHANGED: Using 'gemini-1.5-flash' which is more standard/stable
+        print("Testing AI Connection...")
         response = client.models.generate_content(
             model="gemini-1.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
+            contents="Say 'Hello' in Arabic.",
         )
-        return response.parsed
+        print("✅ AI Connection Success!")
     except Exception as e:
-        # CHANGED: Now prints the actual error to the logs
-        print(f"❌ Error Translating '{title}': {e}")
-        return None
+        print(f"❌ AI Failed: {e}")
+        # Add the actual error to the website so we can see it
+        error_html += f"<div class='error-box'><strong>⚠️ AI Error:</strong><br>{str(e)}</div>"
 
-def main():
-    articles_html = ""
-    processed_count = 0
-    
-    print("🚀 Starting News Fetcher...")
-
+    # FETCH NEWS (Even if AI fails, show the English news so the site isn't empty)
     for feed_url in rss_feeds:
-        print(f"📥 Checking Feed: {feed_url}")
-        feed = feedparser.parse(feed_url)
-        
-        # Handle source name safely
-        source_name = "News"
-        if hasattr(feed, 'feed') and hasattr(feed.feed, 'title'):
-             source_name = feed.feed.title.split()[0]
-        
-        for entry in feed.entries:
-            if processed_count >= 10: break 
-            
-            # Find Image
-            image_url = "https://placehold.co/600x400/1e1e1e/FFF?text=Game+News"
-            if 'media_content' in entry: image_url = entry.media_content[0]['url']
-            elif 'links' in entry:
-                for l in entry.links:
-                    if l['type'].startswith('image'): image_url = l['href']; break
-            
-            content = getattr(entry, 'summary', getattr(entry, 'description', ''))
-            
-            print(f"✨ Translating: {entry.title}...")
-            trans = get_translation(entry.title, content)
-            
-            if trans:
-                print("   ✅ Success!")
-                articles_html += card_template.format(
-                    image=image_url,
-                    source=source_name,
-                    headline=trans['headline'],
-                    summary_points=trans['bullets'],
-                    link=entry.link
-                )
-                processed_count += 1
-            else:
-                print("   ⚠️ Skipped due to error.")
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries[:3]: # Limit to 3 for speed
+                articles_html += f"""
+                <div class="card">
+                    <h3>{entry.title}</h3>
+                    <p>{getattr(entry, 'summary', '')[:150]}...</p>
+                    <small>Raw English Content (AI Translation Skipped)</small>
+                </div>
+                """
+        except Exception as e:
+            error_html += f"<div class='error-box'>Feed Error: {e}</div>"
 
-    if processed_count == 0:
-        articles_html = "<h3 style='text-align:center;'>⚠️ Could not load news. Check GitHub Action Logs for API errors.</h3>"
-
-    # Generate Final HTML
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M UTC")
-    final_html = html_template.format(date=now, articles=articles_html)
+    # Generate HTML
+    now = datetime.datetime.now().strftime("%H:%M:%S UTC")
+    final_html = html_template.format(
+        date=now, 
+        error_section=error_html, 
+        articles=articles_html
+    )
     
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(final_html)
-    print("✅ Website generated successfully!")
 
 if __name__ == "__main__":
     main()
