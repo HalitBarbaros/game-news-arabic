@@ -100,10 +100,10 @@ html_content = """
         /* Updated Modal Body for Longer Text */
         #modal-body { 
             font-size: 1.1rem; 
-            line-height: 1.8; /* Better readability */
+            line-height: 1.8; 
             color: #d4d4d8; 
             margin-bottom: 30px; 
-            white-space: pre-line; /* Preserves paragraph breaks */
+            white-space: pre-line; /* Keeps paragraph breaks */
         }
         
         #modal-link-btn {
@@ -178,21 +178,26 @@ html_content = """
                 if(data.items) {
                     data.items.slice(0, 3).forEach(item => {
                         
-                        // 1. GET FULL CONTENT
-                        // Some feeds store full text in 'content', others in 'description'
-                        let rawContent = item.content || item.description || "";
+                        // --- THE "SMART TEXT" FIX ---
+                        // We fetch BOTH description and content
+                        let desc = item.description || "";
+                        let cont = item.content || "";
                         
-                        // 2. CLEAN HTML TAGS
-                        let cleanText = rawContent.replace(/<[^>]*>?/gm, '');
+                        // We clean them both
+                        let cleanDesc = desc.replace(/<[^>]*>?/gm, '').trim();
+                        let cleanCont = cont.replace(/<[^>]*>?/gm, '').trim();
                         
-                        // 3. CREATE TWO VERSIONS
-                        // Version A: Grid (Short) - max 140 chars
-                        let gridText = cleanText.length > 140 ? cleanText.substring(0, 140) + "..." : cleanText;
+                        // We pick whichever one is LONGER (More story!)
+                        let fullText = cleanCont.length > cleanDesc.length ? cleanCont : cleanDesc;
                         
-                        // Version B: Modal (Long) - max 3000 chars (approx 5-6 paragraphs)
-                        let modalText = cleanText.length > 3000 ? cleanText.substring(0, 3000) + "..." : cleanText;
+                        // If it's still too short, it means the website restricted it.
+                        if (fullText.length < 50) fullText = "Click 'Read Full Story' to view the original article.";
 
-                        // 4. IMAGE LOGIC
+                        // Versions
+                        let gridText = fullText.length > 140 ? fullText.substring(0, 140) + "..." : fullText;
+                        let modalText = fullText.length > 4000 ? fullText.substring(0, 4000) + "..." : fullText;
+
+                        // Image Logic
                         let img = item.enclosure?.link || item.thumbnail;
                         let hasImage = true;
                         if (!img) {
@@ -203,7 +208,7 @@ html_content = """
                         allArticles.push({
                             title: source.type === 'bsky' ? "Status Update" : item.title,
                             gridText: gridText,
-                            fullText: modalText, // Now holds much more text
+                            fullText: modalText, 
                             link: item.link,
                             image: img,
                             hasImage: hasImage,
@@ -256,7 +261,7 @@ html_content = """
             else modalTitle.style.display = "block";
 
             modalMeta.innerText = `${article.source} • ${timeAgo(article.date)}`;
-            modalBody.innerText = article.fullText; // This is now the LONG version
+            modalBody.innerText = article.fullText; // Smart Text
             modalBtn.href = article.link;
             
             if(article.hasImage) {
@@ -329,4 +334,4 @@ with open("manifest.json", "w", encoding="utf-8") as f:
 with open("sw.js", "w", encoding="utf-8") as f:
     f.write(sw_content)
 
-print("✅ Updated: Longer Stories in Modal!")
+print("✅ 'Smart Text' Logic Installed!")
