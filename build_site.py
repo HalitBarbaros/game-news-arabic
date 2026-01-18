@@ -1,260 +1,319 @@
 import os
 
-# CONFIG: The "Premium Editorial" Design
 html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>This Week in Video Games</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0b0b">
+    <title>Video Game News</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/facc15/000?text=GN">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        /* 1. COLOR PALETTE (Skill Up / Cyberpunk Vibe) */
-        :root {
-            --bg: #0b0b0b;          /* Deep Black */
-            --card-bg: #161616;     /* Dark Grey */
-            --text: #ffffff;
-            --accent: #facc15;      /* The "Skill Up" Yellow */
-            --accent-hover: #eab308;
-            --subtext: #a1a1aa;
-        }
-
-        body { 
-            background-color: var(--bg); 
-            color: var(--text); 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 0;
-        }
-
-        /* 2. HEADER (Bold & Condensed) */
+        :root { --bg: #0b0b0b; --card-bg: #161616; --text: #ffffff; --accent: #facc15; --subtext: #a1a1aa; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        /* HEADER */
         header { 
-            background: #000; 
+            background: rgba(0,0,0,0.9); 
+            backdrop-filter: blur(10px);
             border-bottom: 2px solid var(--accent); 
-            padding: 40px 20px; 
+            padding: 15px; 
             text-align: center; 
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
+        h1 { font-family: 'Oswald', sans-serif; font-size: 1.8rem; margin: 0; letter-spacing: 1px; }
+        h1 span { color: var(--accent); }
         
-        h1 { 
-            font-family: 'Oswald', sans-serif; 
-            font-size: 3.5rem; 
-            text-transform: uppercase; 
-            margin: 0; 
-            letter-spacing: 1px;
-        }
+        .container { max-width: 800px; margin: 0 auto; padding: 15px; }
+        .grid { display: grid; gap: 20px; }
         
-        h1 span { color: var(--accent); } /* Yellow highlight */
-        
-        .subtitle { 
-            color: var(--subtext); 
-            margin-top: 10px; 
-            font-size: 0.9rem; 
-            letter-spacing: 0.5px;
-        }
-
-        /* 3. GRID LAYOUT */
-        .container { 
-            max-width: 1100px; 
-            margin: 40px auto; 
-            padding: 0 20px; 
-        }
-        
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
-            gap: 25px; 
-            opacity: 0; 
-            transition: opacity 0.5s ease-in;
-        }
-        .grid.loaded { opacity: 1; }
-
-        /* 4. PREMIUM CARDS */
+        /* CARD DESIGN */
         .card { 
             background: var(--card-bg); 
-            border-radius: 0px; /* Sharp edges look more 'editorial' */
+            border: 1px solid #222; 
+            border-radius: 8px;
             overflow: hidden; 
             display: flex; 
             flex-direction: column; 
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid #222;
+            cursor: pointer; /* Shows it is clickable */
+        }
+        .card:active { transform: scale(0.98); transition: 0.1s; }
+        
+        .card img { width: 100%; height: 180px; object-fit: cover; display: block; }
+        .card.no-image img { display: none; }
+        
+        .content { padding: 20px; }
+        
+        .meta { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; margin-bottom: 10px; font-family: 'Oswald', sans-serif; }
+        .meta span.bsky { color: #3b82f6; } 
+        .meta span.std { color: var(--accent); } 
+        
+        h2 { margin: 0 0 10px 0; font-size: 1.1rem; line-height: 1.4; font-family: 'Inter', sans-serif; font-weight: 600;}
+        p { font-size: 0.9rem; color: var(--subtext); margin: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        #loading { text-align: center; color: var(--accent); margin-top: 50px; font-family: 'Oswald', sans-serif; }
+        
+        /* --- MODAL (POPUP) DESIGN --- */
+        #modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
         }
         
-        .card:hover { 
-            transform: translateY(-4px); 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
-            border-color: var(--accent);
+        #modal-content {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #111;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            position: relative;
         }
         
-        .card img { 
-            width: 100%; 
-            height: 180px; 
-            object-fit: cover; 
-            filter: grayscale(20%); /* Artistic touch */
-            transition: 0.3s;
+        #close-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: #333; color: white;
+            border: none; border-radius: 50%;
+            width: 35px; height: 35px;
+            font-size: 20px; cursor: pointer;
+            z-index: 10;
         }
         
-        .card:hover img { filter: grayscale(0%); } /* Color returns on hover */
-
-        .content { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
+        /* Modal Content Styles */
+        #modal-img { width: 100%; height: auto; max-height: 400px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; display: block;}
+        #modal-title { font-family: 'Oswald', sans-serif; font-size: 2rem; color: white; margin-bottom: 10px; line-height: 1.2; }
+        #modal-meta { color: var(--accent); font-size: 0.8rem; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; }
+        #modal-body { font-size: 1.1rem; line-height: 1.6; color: #ccc; margin-bottom: 30px; white-space: pre-wrap; }
         
-        .meta { 
-            display: flex; 
-            justify-content: space-between; 
-            font-size: 0.75rem; 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            margin-bottom: 12px;
-            color: var(--accent);
-            font-family: 'Oswald', sans-serif;
+        #modal-link-btn {
+            display: block; width: 100%; text-align: center;
+            background: var(--accent); color: #000;
+            padding: 15px; border-radius: 8px;
+            font-weight: bold; text-decoration: none;
+            text-transform: uppercase; font-family: 'Oswald', sans-serif;
         }
         
-        h2 { 
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.4rem; 
-            margin: 0 0 15px 0; 
-            line-height: 1.3; 
-            color: #fff;
-        }
-        
-        p { 
-            font-size: 0.9rem; 
-            color: var(--subtext); 
-            line-height: 1.6; 
-            margin-bottom: 20px; 
-            flex-grow: 1;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        a.card-link { text-decoration: none; color: inherit; height: 100%; display: flex; flex-direction: column; }
-        
-        #loading { 
-            text-align: center; 
-            color: var(--accent); 
-            font-family: 'Oswald', sans-serif; 
-            font-size: 1.5rem; 
-            margin-top: 50px; 
-        }
-
-        /* 5. FOOTER */
-        footer {
-            text-align: center;
-            margin-top: 60px;
-            padding: 40px;
-            border-top: 1px solid #222;
-            color: #444;
-            font-size: 0.8rem;
+        /* Install Button */
+        #install-btn {
+            display: none; position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%); background: var(--accent); color: #000;
+            padding: 12px 24px; border-radius: 50px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(250, 204, 21, 0.4); cursor: pointer; z-index: 900;
         }
     </style>
 </head>
 <body>
-
-    <header>
-        <h1>THIS WEEK IN <span>VIDEO GAMES</span></h1>
-        <div class="subtitle">LIVE FEED • INDEPENDENT COVERAGE • NO ADS</div>
-    </header>
-
+    <header><h1>GAME <span>NEWS</span></h1></header>
+    
     <div class="container">
-        <div id="loading">FETCHING LIVE NEWS...</div>
+        <div id="loading">FETCHING SOURCES...</div>
         <div id="news-grid" class="grid"></div>
     </div>
+    
+    <div id="install-btn">📲 Install App</div>
 
-    <footer>
-        DESIGN INSPIRED BY SKILL UP • AUTO-UPDATES ON REFRESH
-    </footer>
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <button id="close-btn" onclick="closeModal()">&times;</button>
+            <img id="modal-img" src="" alt="">
+            <div id="modal-text-container">
+                <h1 id="modal-title"></h1>
+                <div id="modal-meta"></div>
+                <p id="modal-body"></p>
+                <a id="modal-link-btn" href="#" target="_blank">Read Full Story</a>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // SOURCES (Gematsu/VG247 are closest to 'Twitter' speed)
+        // PWA INSTALL LOGIC
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; });
+        installBtn.addEventListener('click', () => { installBtn.style.display = 'none'; deferredPrompt.prompt(); });
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+        // SOURCES
         const feeds = [
-            { name: "Gematsu", url: "https://gematsu.com/feed" },
-            { name: "VG247", url: "https://www.vg247.com/feed" },
-            { name: "Eurogamer", url: "https://www.eurogamer.net/feed" },
-            { name: "Kotaku", url: "https://kotaku.com/rss" },
-            { name: "IGN", url: "https://feeds.ign.com/ign/news" }
+            { name: "Wario64", url: "https://bsky.app/profile/wario64.bsky.social/rss", type: "bsky" },
+            { name: "TheGameAwards", url: "https://bsky.app/profile/thegameawards.bsky.social/rss", type: "bsky" },
+            { name: "Jason Schreier", url: "https://bsky.app/profile/jasonschreier.bsky.social/rss", type: "bsky" },
+            { name: "Stephen Totilo", url: "https://bsky.app/profile/stephentotilo.bsky.social/rss", type: "bsky" },
+            { name: "Gematsu", url: "https://gematsu.com/feed", type: "std" },
+            { name: "VG247", url: "https://www.vg247.com/feed", type: "std" },
+            { name: "Eurogamer", url: "https://www.eurogamer.net/feed", type: "std" },
+            { name: "IGN", url: "https://feeds.ign.com/ign/news", type: "std" },
+            { name: "GameSpot", url: "https://www.gamespot.com/feeds/news/", type: "std" },
+            { name: "Kotaku", url: "https://kotaku.com/rss", type: "std" }
         ];
 
         const grid = document.getElementById('news-grid');
         const loading = document.getElementById('loading');
-        let allArticles = [];
-        let completedFeeds = 0;
+        let allArticles = []; // Store article data globally so Modal can access it
+        let completed = 0;
 
         feeds.forEach(source => {
-            const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(source.url);
+            const proxy = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(source.url);
+            fetch(proxy).then(r => r.json()).then(data => {
+                if(data.items) {
+                    data.items.slice(0, 3).forEach(item => {
+                        let cleanDesc = item.description.replace(/<[^>]*>?/gm, '');
+                        let limit = source.type === 'bsky' ? 300 : 140;
+                        // For modal, we want the FULL text if possible, but for grid we truncate
+                        let gridDesc = cleanDesc.length > limit ? cleanDesc.substring(0, limit) + "..." : cleanDesc;
+                        
+                        let img = item.enclosure?.link || item.thumbnail;
+                        let hasImage = true;
+                        if (!img) {
+                            if (source.type === 'bsky') { hasImage = false; img = ""; } 
+                            else { img = "https://placehold.co/600x400/161616/333?text=" + source.name; }
+                        }
 
-            fetch(proxyUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'ok') {
-                        data.items.slice(0, 5).forEach(item => {
-                            // Clean up descriptions
-                            let cleanDesc = item.description.replace(/<[^>]*>?/gm, '');
-                            if (cleanDesc.length > 150) cleanDesc = cleanDesc.substring(0, 150) + "...";
-
-                            allArticles.push({
-                                title: item.title,
-                                link: item.link,
-                                image: item.enclosure?.link || item.thumbnail || "https://placehold.co/600x400/161616/333?text=NEWS",
-                                summary: cleanDesc,
-                                source: source.name,
-                                date: new Date(item.pubDate)
-                            });
+                        allArticles.push({
+                            title: source.type === 'bsky' ? "Status Update" : item.title,
+                            gridText: gridDesc,
+                            fullText: cleanDesc, // Store full text for modal
+                            link: item.link,
+                            image: img,
+                            hasImage: hasImage,
+                            source: source.name,
+                            type: source.type,
+                            date: new Date(item.pubDate)
                         });
-                    }
-                })
-                .catch(err => console.log('Error:', err))
-                .finally(() => {
-                    completedFeeds++;
-                    if (completedFeeds === feeds.length) renderNews();
-                });
+                    });
+                }
+            }).finally(() => {
+                completed++;
+                if(completed === feeds.length) {
+                    allArticles.sort((a,b) => b.date - a.date);
+                    loading.style.display = 'none';
+                    renderGrid();
+                }
+            });
         });
 
-        function renderNews() {
-            // Sort: Newest First
-            allArticles.sort((a, b) => b.date - a.date);
-
-            loading.style.display = 'none';
-            grid.innerHTML = '';
-            
-            allArticles.forEach(article => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <a href="${article.link}" class="card-link" target="_blank">
-                        <img src="${article.image}" onerror="this.src='https://placehold.co/600x400/161616/333?text=IMG'">
-                        <div class="content">
-                            <div class="meta">
-                                <span>${article.source}</span>
-                                <span>${timeAgo(article.date)}</span>
-                            </div>
-                            <h2>${article.title}</h2>
-                            <p>${article.summary}</p>
+        function renderGrid() {
+            grid.innerHTML = allArticles.map((a, index) => `
+                <div class="card ${a.hasImage ? '' : 'no-image'}" onclick="openModal(${index})">
+                    <img src="${a.image}">
+                    <div class="content">
+                        <div class="meta">
+                            <span class="${a.type}">
+                                ${a.type === 'bsky' ? '🦋 ' + a.source : '📰 ' + a.source}
+                            </span>
+                            <span>${timeAgo(a.date)}</span>
                         </div>
-                    </a>
-                `;
-                grid.appendChild(card);
-            });
-            
-            grid.classList.add('loaded');
+                        ${a.type !== 'bsky' ? `<h2>${a.title}</h2>` : ''}
+                        <p>${a.gridText}</p>
+                    </div>
+                </div>
+            `).join('');
         }
+
+        // --- MODAL FUNCTIONS ---
+        const modal = document.getElementById('modal-overlay');
+        const modalImg = document.getElementById('modal-img');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMeta = document.getElementById('modal-meta');
+        const modalBody = document.getElementById('modal-body');
+        const modalBtn = document.getElementById('modal-link-btn');
+
+        window.openModal = function(index) {
+            const article = allArticles[index];
+            
+            // Populate Data
+            modalTitle.innerText = article.title;
+            if(article.title === "Status Update") modalTitle.style.display = "none";
+            else modalTitle.style.display = "block";
+
+            modalMeta.innerText = `${article.source} • ${timeAgo(article.date)}`;
+            modalBody.innerText = article.fullText; // Show more text in modal
+            modalBtn.href = article.link;
+            
+            // Handle Image
+            if(article.hasImage) {
+                modalImg.src = article.image;
+                modalImg.style.display = "block";
+            } else {
+                modalImg.style.display = "none";
+            }
+
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden"; // Prevent background scrolling
+        }
+
+        window.closeModal = function() {
+            modal.style.display = "none";
+            document.body.style.overflow = "auto"; // Restore scrolling
+        }
+
+        // Close if clicking outside box
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
+        });
 
         function timeAgo(date) {
             const seconds = Math.floor((new Date() - date) / 1000);
             let interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + "h ago";
+            if (interval > 1) return Math.floor(interval) + "h";
             interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + "m ago";
-            return "Just now";
+            if (interval > 1) return Math.floor(interval) + "m";
+            return "Now";
         }
     </script>
-
 </body>
 </html>
 """
 
+manifest_content = """{
+  "name": "Game News",
+  "short_name": "GameNews",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/facc15/000?text=GN",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://placehold.co/512x512/facc15/000?text=GN",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}"""
+
+sw_content = """
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open('gamenews-v1').then((cache) => cache.addAll(['./', './index.html'])));
+});
+self.addEventListener('fetch', (e) => {
+  e.respondWith(caches.match(e.request).then((response) => response || fetch(e.request)));
+});
+"""
+
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_content)
+with open("manifest.json", "w", encoding="utf-8") as f:
+    f.write(manifest_content)
+with open("sw.js", "w", encoding="utf-8") as f:
+    f.write(sw_content)
 
-print("✅ Skill-Up Style Theme Installed!")
+print("✅ 'Quick View' Modal System Installed!")
